@@ -5,6 +5,7 @@ theme: hugo-geekdoc
 pygmentsUseClasses: true
 pygmentsCodeFences: true
 timeout: 180000
+pluralizeListTitles: false
 
 # Geekdoc configuration
 disablePathToLower: true
@@ -20,12 +21,17 @@ markup:
     endLevel: 9
 
 params:
+  # geekdocMenuBundle: true
   geekdocToC: 3
 
   geekdocRepo: https://github.com/thegeeklab/hugo-geekdoc
-  geekdocEditPath: edit/master/exampleSite/content
+  geekdocEditPath: edit/main/exampleSite/content
 
   geekdocSearch: true
+  geekdocSearchShowParent: true
 
   geekdocLegalNotice: https://thegeeklab.de/legal-notice/#contact-information
   geekdocPrivacyPolicy: https://thegeeklab.de/legal-notice/#privacy-policy
+
+  geekdocImageLazyLoading: true
+  geekdocDarkModeDim: true

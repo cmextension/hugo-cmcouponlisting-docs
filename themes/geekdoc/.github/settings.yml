@@ -1,4 +1,3 @@
----
 repository:
   name: hugo-geekdoc
   description: Hugo theme made for documentation
@@ -9,9 +8,9 @@ repository:
   has_issues: true
   has_projects: false
   has_wiki: false
-  has_downloads: false
+  has_downloads: true
 
-  default_branch: master
+  default_branch: main
 
   allow_squash_merge: true
   allow_merge_commit: true
@@ -47,13 +46,12 @@ labels:
     description: This will not be worked on
 
 branches:
-  - name: master
+  - name: main
     protection:
+      required_pull_request_reviews: null
       required_status_checks:
-        strict: true
+        strict: false
         contexts:
           - continuous-integration/drone/pr
-      enforce_admins: false
-      restrictions:
-        users: []
-        teams: []
+      enforce_admins: null
+      restrictions: null

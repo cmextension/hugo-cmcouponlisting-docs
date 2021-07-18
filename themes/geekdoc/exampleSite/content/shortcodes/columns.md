@@ -1,4 +1,8 @@
-Columns help organize shorter pieces of content horizontally for readability.
+---
+title: Columns
+---
+
+The Columns shortcode can be used to organize content side-by-side (horizontally) for better readability.
 
 ```html
 {{</* columns */>}} <!-- begin columns block -->

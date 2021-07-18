@@ -23,7 +23,7 @@
     font-weight: 600;
 
     > code {
-      border-top: 3px solid $gray-300;
+      border-top: $border-4 solid var(--accent-color);
       font-size: 0.75em !important;
     }
   }
@@ -42,9 +42,10 @@
     font-weight: bolder;
   }
 
-  a {
+  a,
+  &__link {
     text-decoration: none;
-    border-bottom: 1px solid transparent;
+    border-bottom: $border-1 solid transparent;
     line-height: 1em;
 
     &:hover {
@@ -52,15 +53,53 @@
     }
   }
 
+  &__link--raw {
+    text-decoration: none !important;
+    color: $body-font-color !important;
+
+    &:hover {
+      text-decoration: none !important;
+    }
+
+    &:visited {
+      color: $body-font-color !important;
+    }
+  }
+
   img {
     max-width: 100%;
+    border-radius: $border-radius;
+  }
+
+  &__figure {
+    padding: $padding-4;
+    margin: $padding-16 0;
+    background-color: var(--accent-color);
+    display: table;
+    border-top-left-radius: $border-radius;
+    border-top-right-radius: $border-radius;
+
+    figcaption {
+      display: table-caption;
+      caption-side: bottom;
+      background-color: var(--accent-color);
+      padding: 0 $padding-4 $padding-4;
+      text-align: center;
+      border-bottom-left-radius: $border-radius;
+      border-bottom-right-radius: $border-radius;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
   }
 
   blockquote {
     margin: $padding-16 0;
     padding: $padding-8 $padding-16 $padding-8 ($padding-16 - $padding-4); //to keep total left space 16dp
 
-    border-left: $padding-4 solid $gray-200;
+    border-left: $border-4 solid var(--accent-color);
     border-radius: $border-radius;
 
     :first-child {
@@ -71,29 +110,38 @@
     }
   }
 
-  table {
+  table:not(.lntable) {
     overflow: auto;
-    display: block;
+    display: table;
     border-spacing: 0;
     border-collapse: collapse;
     margin-top: $padding-16;
     margin-bottom: $padding-16;
+    width: 100%;
+    text-align: left;
+
+    thead {
+      border-bottom: $border-4 solid var(--accent-color);
+    }
 
     tr th,
     tr td {
       padding: $padding-8 $padding-16;
-      border: $padding-1 solid $gray-200;
+    }
+
+    tr {
+      border-bottom: $border-2 solid var(--accent-color);
     }
 
     tr:nth-child(2n) {
-      background: $gray-100;
+      background: var(--accent-color-lite);
     }
   }
 
   hr {
-    height: $padding-1;
+    height: $border-2;
     border: none;
-    background: $gray-200;
+    background: var(--accent-color);
   }
 
   ul,
@@ -117,16 +165,57 @@
   }
 
   code {
-    background-color: $color-code;
+    background-color: var(--code-background);
+    border-radius: $border-radius;
+    color: var(--code-font-color);
     font-size: 0.85em;
-    line-height: 1.45;
+    line-height: 1.45em;
     padding: 0.2em 0.4em;
   }
 
-  > pre code {
+  pre code {
     display: block;
     padding: 1rem;
     width: 100%;
     overflow: auto;
+    max-height: var(--code-max-height);
+  }
+
+  &__align {
+    &--left {
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        justify-content: flex-start;
+      }
+      text-align: left;
+    }
+
+    &--center {
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        justify-content: center;
+      }
+      text-align: center;
+    }
+
+    &--right {
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        justify-content: flex-end;
+      }
+      text-align: right;
+    }
   }
 }

@@ -1,36 +1,53 @@
+const devBuild = !(
+  (process.env.NODE_ENV || "prod").trim().toLowerCase() === "prod"
+);
+
 const gulp = require("gulp");
 const rename = require("gulp-rename");
-const sass = require("gulp-sass");
+const { sass } = require("@mr-hope/gulp-sass");
 const cleanCSS = require("gulp-clean-css");
 const autoprefixer = require("gulp-autoprefixer");
 const iconfont = require("gulp-iconfont");
-const clean = require("gulp-clean");
-
+const filelist = require("gulp-filelist");
+const uglify = require("gulp-uglify");
+const sourcemaps = require("gulp-sourcemaps");
 const realFavicon = require("gulp-real-favicon");
-const path = require("path");
-const fs = require("fs");
-
 const svgSprite = require("gulp-svg-sprite");
 const rev = require("gulp-rev");
+const replace = require("gulp-replace");
 
-var CSSDEST = "assets/";
-var FAVICON_DATA_FILE = "build/faviconData.json";
+const path = require("path");
+const fs = require("fs");
+const del = require("del");
+const through = require("through2");
+
+var BUILD = "build";
+var CSS_BUILD = BUILD + "/assets";
+var JS_BUILD = BUILD + "/assets/js";
+var FONTS = "static/fonts";
+var FAVICON_DATA_FILE = BUILD + "/faviconData.json";
 var TIMESTAMP = Math.round(Date.now() / 1000);
+
+function noop() {
+  return through.obj();
+}
 
 gulp.task("sass", function () {
   return gulp
     .src("src/sass/{main,print,mobile}.scss")
-    .pipe(sass({ errLogToConsole: true }))
+    .pipe(devBuild ? sourcemaps.init() : noop())
+    .pipe(sass().on("error", sass.logError))
     .pipe(cleanCSS({ format: "beautify" }))
     .pipe(
       autoprefixer({
         cascade: false,
       })
     )
-    .pipe(gulp.dest(CSSDEST))
+    .pipe(gulp.dest(CSS_BUILD))
     .pipe(cleanCSS())
     .pipe(rename({ extname: ".min.css" }))
-    .pipe(gulp.dest(CSSDEST));
+    .pipe(devBuild ? sourcemaps.write(".") : noop())
+    .pipe(gulp.dest(CSS_BUILD));
 });
 
 gulp.task("favicon-generate", function (done) {
@@ -113,6 +130,9 @@ gulp.task("favicon-check-update", function (done) {
 gulp.task("svg-sprite", function () {
   config = {
     shape: {
+      id: {
+        generator: "gdoc_%s",
+      },
       dimension: {
         maxWidth: 28,
         maxHeight: 28,
@@ -122,19 +142,19 @@ gulp.task("svg-sprite", function () {
         padding: 2,
         box: "content",
       },
-      dest: "build/intermediate-svg",
+      dest: BUILD + "/intermediate-svg",
     },
     svg: {
       xmlDeclaration: false,
       rootAttributes: {
-        style: "position: absolute; width: 0; height: 0; overflow: hidden;",
+        class: "svg-sprite",
       },
     },
     mode: {
       inline: true,
       symbol: {
-        dest: "layouts/partials/",
-        sprite: "svg-icon-symbols.html",
+        dest: "assets/sprites/",
+        sprite: "geekdoc.svg",
         bust: false,
       },
     },
@@ -146,12 +166,20 @@ gulp.task("svg-sprite", function () {
     .pipe(gulp.dest("."));
 });
 
+gulp.task("svg-sprite-list", function () {
+  config = { removeExtensions: true, flatten: true };
+
+  return gulp
+    .src("src/icons/*.svg")
+    .pipe(filelist("exampleSite/data/sprites/geekdoc.json", config))
+    .pipe(gulp.dest("."));
+});
+
 gulp.task("iconfont", function () {
   var lastUnicode = 0xea01;
   var files = fs.readdirSync("src/iconfont");
 
-  // Filter files with containing unicode value
-  // and set last unicode
+  // Filter files with containing unicode value and set last unicode
   files.forEach(function (file) {
     var basename = path.basename(file);
     var matches = basename.match(/^(?:((?:u[0-9a-f]{4,6},?)+)\-)?(.+)\.svg$/i);
@@ -180,15 +208,67 @@ gulp.task("iconfont", function () {
         timestamp: TIMESTAMP,
       })
     )
-    .pipe(gulp.dest("static/fonts/"));
+    .pipe(gulp.dest(FONTS));
+});
+
+gulp.task("js", function () {
+  return gulp
+    .src(["src/js/*.js"])
+    .pipe(devBuild ? sourcemaps.init() : noop())
+    .pipe(uglify())
+    .pipe(rename({ extname: ".min.js" }))
+    .pipe(devBuild ? sourcemaps.write(".") : noop())
+    .pipe(gulp.dest(JS_BUILD));
+});
+
+gulp.task("asset-sync-js", function () {
+  return gulp
+    .src([
+      "node_modules/clipboard/dist/clipboard.min.js",
+      "node_modules/flexsearch/dist/flexsearch.compact.js",
+      "node_modules/mermaid/dist/mermaid.min.js",
+      "node_modules/katex/dist/katex.min.js",
+      "node_modules/katex/dist/contrib/auto-render.min.js",
+    ])
+    .pipe(replace(/\/\/# sourceMappingURL=.+$/, ""))
+    .pipe(
+      rename(function (path) {
+        path.basename = path.basename.replace(/compact/, "min");
+      })
+    )
+    .pipe(gulp.dest(JS_BUILD));
+});
+
+gulp.task("asset-sync-css", function () {
+  return gulp
+    .src(["node_modules/katex/dist/katex.min.css"])
+    .pipe(replace(/\/\/# sourceMappingURL=.+$/, ""))
+    .pipe(
+      rename(function (path) {
+        path.basename = path.basename.replace(/compact/, "min");
+      })
+    )
+    .pipe(gulp.dest(CSS_BUILD));
+});
+
+gulp.task("asset-sync-font", function () {
+  return gulp
+    .src(["node_modules/katex/dist/fonts/KaTeX_*"])
+    .pipe(gulp.dest(FONTS));
 });
 
 gulp.task("asset-rev", function () {
   return gulp
-    .src(["assets/*.min.css", "assets/js/*.min.js"], {
-      base: "static",
-    })
-    .pipe(gulp.dest("build/assets"))
+    .src(
+      [
+        CSS_BUILD + "/*.min.css",
+        JS_BUILD + "/*.min.js",
+        JS_BUILD + "/*.compact.js",
+      ],
+      {
+        base: BUILD + "/assets",
+      }
+    )
     .pipe(rev())
     .pipe(gulp.dest("static"))
     .pipe(
@@ -201,22 +281,55 @@ gulp.task("asset-rev", function () {
     .pipe(gulp.dest("data"));
 });
 
-gulp.task("asset-rm", function () {
+gulp.task("asset-map", function () {
   return gulp
-    .src(["build/assets", "static/js/*-*.js", "static/*-*.css"], {
-      read: false,
-      allowEmpty: true,
+    .src([CSS_BUILD + "/*.min.css.map", JS_BUILD + "/*.min.js.map"], {
+      base: BUILD + "/assets",
     })
-    .pipe(clean());
+    .pipe(gulp.dest("static"));
 });
 
-gulp.task("asset", gulp.series("asset-rm", "asset-rev"));
+gulp.task("clean", function () {
+  return del([
+    BUILD,
+    "assets/sprites/",
+    "static/js/",
+    "static/favicon/",
+    "static/*.min.css",
+    "static/*.css.map",
+    "data/assets.json",
+    "resources",
+  ]);
+});
+
+/* Task series */
+
+gulp.task(
+  "asset",
+  gulp.series("asset-sync-font", "asset-sync-css", "asset-sync-js", "asset-rev")
+);
+
+gulp.task("svg", gulp.series("svg-sprite"));
 
 gulp.task(
   "default",
-  gulp.series("sass", "svg-sprite", "iconfont", "favicon-generate", "asset")
+  gulp.series([
+    devBuild ? [] : "clean",
+    "sass",
+    "js",
+    "asset",
+    devBuild ? "asset-map" : [],
+    "svg",
+    "iconfont",
+    "favicon-generate",
+  ])
 );
 
-gulp.task("devel", function () {
-  gulp.watch("src/sass/**/*.*css", gulp.series("sass", "asset"));
+gulp.task("watch", function () {
+  gulp.series("default")();
+  gulp.watch(
+    "src/sass/**/*.*css",
+    gulp.series("sass", "asset-rev", "asset-map")
+  );
+  gulp.watch("src/js/*.js", gulp.series("js", "asset-rev", "asset-map"));
 });

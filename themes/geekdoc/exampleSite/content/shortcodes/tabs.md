@@ -1,3 +1,7 @@
+---
+title: Tabs
+---
+
 Tabs let you organize content by context, for example installation instructions for each supported platform.
 
 ```tpl
@@ -13,7 +17,7 @@ Tabs let you organize content by context, for example installation instructions 
 {{< tabs "uniqueid" >}}
 {{< tab "macOS" >}}
 
-# macOS
+## macOS
 
 This is tab **macOS** content.
 
@@ -25,19 +29,19 @@ fastidious copious quo ad. Stet probates in duo.
 
 {{< tab "Linux" >}}
 
-# Linux
+## Linux
 
 This is tab **Linux** content.
 
 Dolor sit, sumo unique argument um no. Gracie nominal id xiv. Romanesque acclimates
-investiture. **Ornateness** bland it ex enc, est yeti am bongo detract re. Pro ad
+investiture. Ornateness bland it ex enc, est yeti am bongo detract re. Pro ad
 prompts feud gait, quid exercise emeritus bis e. In pro quints consequent, denim
 fastidious copious quo ad. Stet probates in duo.
 {{< /tab >}}
 
 {{< tab "Windows" >}}
 
-# Windows
+## Windows
 
 This is tab **Windows** content.
 

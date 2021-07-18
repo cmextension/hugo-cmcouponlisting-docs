@@ -10,28 +10,27 @@ steps:
 - name: assets
   image: node:lts
   commands:
-  - npm install -g gulp
-  - npm install
-  - gulp default
+  - npm install > /dev/null
+  - npx gulp default
   environment:
     FORCE_COLOR: true
     NPM_CONFIG_LOGLEVEL: error
 
 - name: testbuild
-  image: klakegg/hugo:0.74.3-ext-alpine
+  image: thegeeklab/hugo:0.83.1
   commands:
   - mkdir exampleSite/themes/ && ln -s $(pwd)/ exampleSite/themes/hugo-geekdoc
-  - hugo-official -s exampleSite/ -b http://localhost/
+  - hugo -s exampleSite/ -b http://localhost/
 
 - name: html-validation
   image: thegeeklab/vnu
   commands:
-  - vnu --skip-non-html --also-check-css --errors-only exampleSite/public
+  - vnu --skip-non-html --also-check-css --errors-only --filterfile .vnuignore exampleSite/public
 
 - name: link-validation
   image: thegeeklab/link-validator
   commands:
-  - link-validator -ro --exclude "https://github.com/thegeeklab/hugo-geekdoc/edit/master/*"
+  - link-validator -ro --exclude "https://github.com/thegeeklab/hugo-geekdoc/edit/main/*"
   environment:
     LINK_VALIDATOR_BASE_DIR: exampleSite/public
 
@@ -71,13 +70,13 @@ steps:
   when:
     ref:
     - refs/pull/**
-
-image_pull_secrets:
-- docker_config
+    status:
+    - failure
+    - success
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - refs/tags/**
   - refs/pull/**
 
@@ -93,24 +92,30 @@ steps:
 - name: assets
   image: node:lts
   commands:
-  - npm install -g gulp
-  - npm install
-  - gulp default
+  - npm install > /dev/null
+  - npx gulp default
   environment:
     FORCE_COLOR: true
     NPM_CONFIG_LOGLEVEL: error
 
 - name: package
-  image: alpine
+  image: thegeeklab/alpine-tools
   commands:
   - mkdir dist/
   - echo "${DRONE_TAG:-latest}" > VERSION
   - tar -zcvf dist/hugo-geekdoc.tar.gz -X .tarignore .
 
 - name: checksum
-  image: alpine
+  image: thegeeklab/alpine-tools
   commands:
   - cd dist/ && sha256sum * > ../sha256sum.txt
+
+- name: changelog
+  image: thegeeklab/git-chglog
+  commands:
+  - git fetch -tq
+  - git-chglog --no-color --no-emoji ${DRONE_TAG:---next-tag unreleased unreleased}
+  - git-chglog --no-color --no-emoji -o CHANGELOG.md ${DRONE_TAG:---next-tag unreleased unreleased}
 
 - name: release
   image: plugins/github-release
@@ -123,13 +128,15 @@ steps:
     note: CHANGELOG.md
     overwrite: true
     title: ${DRONE_TAG}
-
-image_pull_secrets:
-- docker_config
+  when:
+    ref:
+    - refs/tags/**
 
 trigger:
   ref:
+  - refs/heads/main
   - refs/tags/**
+  - refs/pull/**
 
 depends_on:
 - test
@@ -155,21 +162,41 @@ steps:
   image: node:lts-alpine
   commands:
   - npm install -g spellchecker-cli
-  - spellchecker --files 'exampleSite/content/**/*.md' 'README.md' -d .dictionary -p spell indefinite-article syntax-urls --no-suggestions
+  - spellchecker --files 'exampleSite/content/**/*.md' 'README.md' -d .dictionary -p spell indefinite-article syntax-urls frontmatter --frontmatter-keys title --no-suggestions
   environment:
     FORCE_COLOR: true
     NPM_CONFIG_LOGLEVEL: error
 
 - name: assets
-  image: thegeeklab/alpine-tools
+  image: node:lts
   commands:
+  - npm install > /dev/null
+  - npx gulp svg-sprite-list
   - mkdir -p exampleSite/themes/hugo-geekdoc/
   - curl -sSL https://github.com/thegeeklab/hugo-geekdoc/releases/latest/download/hugo-geekdoc.tar.gz | tar -xz -C exampleSite/themes/hugo-geekdoc/ --strip-components=1
+  when:
+    ref:
+    - refs/heads/main
+    - refs/tags/**
+
+- name: assets-main
+  image: node:lts
+  commands:
+  - npm install > /dev/null
+  - npx gulp default
+  - npx gulp svg-sprite-list
+  - mkdir exampleSite/themes/ && ln -s $(pwd)/ exampleSite/themes/hugo-geekdoc
+  environment:
+    FORCE_COLOR: true
+    NPM_CONFIG_LOGLEVEL: error
+  when:
+    ref:
+    - refs/pull/**
 
 - name: build
-  image: klakegg/hugo:0.74.3-ext-alpine
+  image: thegeeklab/hugo:0.83.1
   commands:
-  - hugo-official -s exampleSite/
+  - hugo -s exampleSite/
 
 - name: beautify
   image: node:lts-alpine
@@ -195,15 +222,12 @@ steps:
     strip_prefix: exampleSite/public/
   when:
     ref:
-    - refs/heads/master
+    - refs/heads/main
     - refs/tags/**
-
-image_pull_secrets:
-- docker_config
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - refs/tags/**
   - refs/pull/**
 
@@ -236,12 +260,9 @@ steps:
     - success
     - failure
 
-image_pull_secrets:
-- docker_config
-
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - refs/tags/**
   status:
   - success
@@ -254,6 +275,6 @@ depends_on:
 
 ---
 kind: signature
-hmac: 21a75fed2d451c36e7a25f274ce6264bd47f80d71d8637eb887ffa50afc3e5c7
+hmac: eab38beb69658699f03b9ce6ad2c70c5040f6fd028af08fcdaf27384cc61ab45
 
 ...
