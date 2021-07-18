@@ -1,0 +1,8 @@
+baseURL = "http://localhost:1313/"
+languageCode = "en-us"
+title = "CM Coupon Listing Documentation"
+theme = "geekdoc"
+pygmentsUseClasses=true
+pygmentsCodeFences=true
+[taxonomies]
+  tag = "tags"
